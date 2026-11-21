@@ -1,0 +1,298 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<title>飞碟塔防</title>
+<style>
+:root {
+  --panel: rgba(30, 27, 52, 0.88);
+  --panel2: rgba(48, 43, 80, 0.92);
+  --line: rgba(255, 255, 255, 0.13);
+  --text: #fff;
+  --muted: #bdb6e0;
+  --orange: #f38b3c;
+  --orange-d: #b85d1b;
+  --purple: #7d6cf2;
+  --purple-d: #4d3fb5;
+  --green: #4cc887;
+  --green-d: #2b8a58;
+  --red: #ef5a5a;
+  --gold: #ffd25e;
+  --r: 14px;
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+html, body { margin: 0; height: 100%; overflow: hidden; background: #2a2640; color: var(--text);
+  font-family: -apple-system, "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", system-ui, sans-serif; font-size: 14px; user-select: none; -webkit-user-select: none; }
+#view, #view canvas { position: fixed; inset: 0; display: block; }
+.hidden { display: none !important; }
+button { font: inherit; color: inherit; cursor: pointer; border: 0; }
+button:disabled { cursor: default; }
+input, select { font: inherit; }
+.dim { color: var(--muted); }
+
+.btn { background: var(--orange); box-shadow: 0 4px 0 var(--orange-d); border-radius: 12px; padding: 10px 18px; font-weight: 700; transition: transform .06s, filter .15s; }
+.btn:hover { filter: brightness(1.08); }
+.btn:active { transform: translateY(3px); box-shadow: 0 1px 0 var(--orange-d); }
+.btn.alt { background: var(--purple); box-shadow: 0 4px 0 var(--purple-d); }
+.btn.alt:active { box-shadow: 0 1px 0 var(--purple-d); }
+.btn.go { background: var(--green); box-shadow: 0 4px 0 var(--green-d); }
+.btn.go:active { box-shadow: 0 1px 0 var(--green-d); }
+.btn.ghost { background: rgba(255,255,255,.1); box-shadow: 0 4px 0 rgba(0,0,0,.25); }
+.btn.sm { padding: 6px 12px; font-size: 13px; border-radius: 10px; }
+.btn.dim { filter: grayscale(.7) brightness(.8); }
+
+/* 载入 */
+#loading { position: fixed; inset: 0; display: grid; place-content: center; gap: 14px; text-align: center; background: #2a2640; z-index: 50; }
+#loading h1 { margin: 0; font-size: 34px; letter-spacing: 4px; }
+.lbar { width: 240px; height: 10px; background: rgba(255,255,255,.12); border-radius: 6px; overflow: hidden; margin: 0 auto; }
+#loadBar { height: 100%; width: 0; background: var(--orange); transition: width .2s; }
+
+/* 首页 */
+#home { position: fixed; inset: 0; pointer-events: none; }
+#home .title { position: absolute; left: 50%; top: 9%; transform: translateX(-50%); text-align: center; }
+#home h1 { margin: 0; font-size: clamp(40px, 8vw, 72px); letter-spacing: 6px; text-shadow: 0 5px 0 rgba(60, 40, 120, .55), 0 10px 30px rgba(0,0,0,.25); }
+#home .title p { margin: 6px 0 0; font-size: 16px; font-weight: 600; text-shadow: 0 2px 6px rgba(0,0,0,.4); }
+#home .home-btns { position: absolute; left: 50%; bottom: max(9%, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; gap: 16px; pointer-events: auto; }
+#home .home-btns .btn { font-size: 20px; padding: 14px 34px; border-radius: 16px; }
+#home .credit { position: absolute; right: 12px; bottom: 8px; font-size: 11px; color: rgba(255,255,255,.7); text-shadow: 0 1px 3px rgba(0,0,0,.5); }
+
+/* 弹窗 */
+.modal { position: fixed; inset: 0; display: grid; place-items: center; background: rgba(20, 16, 40, .45); z-index: 30; padding: 16px; }
+.modal .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 18px; width: min(620px, 100%); max-height: 86vh; display: flex; flex-direction: column; gap: 12px; backdrop-filter: blur(8px); }
+.modal h2 { margin: 0; font-size: 20px; }
+#mapListBody { overflow-y: auto; display: flex; flex-direction: column; gap: 8px; }
+.mrow { display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,.06); border-radius: 12px; padding: 10px 12px; }
+.mname { flex: 1; min-width: 0; }
+.mname b { font-size: 15px; }
+.mname small { display: block; color: var(--muted); margin-top: 3px; }
+.tag { font-size: 11px; background: var(--purple); border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: 2px; }
+.mstars { color: var(--gold); font-size: 16px; white-space: nowrap; }
+.mbtns { display: flex; gap: 6px; }
+.row { display: flex; gap: 10px; justify-content: flex-end; }
+
+/* 结算 */
+#result .panel { width: min(380px, 100%); text-align: center; align-items: center; }
+#resTitle { font-size: 30px; margin: 4px 0 0; }
+#resTitle.win { color: var(--gold); }
+#resTitle.lose { color: var(--red); }
+#resStars { font-size: 44px; color: var(--gold); letter-spacing: 6px; text-shadow: 0 3px 0 #a5701a; }
+#resStars .off { color: rgba(255,255,255,.18); text-shadow: none; }
+#resInfo { color: var(--muted); line-height: 1.7; }
+.rec { color: var(--gold); }
+
+/* 编辑器 */
+.topbar { position: fixed; left: 0; right: 0; top: 0; display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 10px 12px; padding-top: max(10px, env(safe-area-inset-top));
+  background: linear-gradient(rgba(25,22,45,.85), rgba(25,22,45,.55)); z-index: 10; }
+.topbar label { display: flex; align-items: center; gap: 5px; color: var(--muted); font-size: 12px; }
+.topbar input, .topbar select { background: rgba(255,255,255,.1); border: 1px solid var(--line); color: #fff; border-radius: 8px; padding: 5px 7px; }
+.topbar select option { color: #000; }
+#edName { width: 130px; font-weight: 700; }
+#edGold, #edLives { width: 64px; }
+.spacer { flex: 1; }
+#edTools { position: fixed; left: 10px; top: 50%; transform: translateY(-50%); display: flex; flex-direction: column; gap: 6px; z-index: 10;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--r); padding: 8px; }
+.tool { display: flex; align-items: center; gap: 8px; padding: 5px 10px 5px 5px; border-radius: 10px; background: transparent; font-size: 13px; font-weight: 600; text-align: left; }
+.tool img, .tool .emo { width: 34px; height: 34px; object-fit: contain; display: grid; place-items: center; font-size: 22px; }
+.tool:hover { background: rgba(255,255,255,.08); }
+.tool.on { background: var(--orange); box-shadow: 0 3px 0 var(--orange-d); }
+#edStatus { position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); padding: 9px 16px; border-radius: 12px; font-weight: 600; z-index: 10; max-width: calc(100% - 200px); text-align: center; }
+#edStatus.ok { background: rgba(43, 138, 88, .92); }
+#edStatus.bad { background: rgba(190, 64, 64, .92); }
+.cam-btns { position: fixed; right: 12px; bottom: max(14px, env(safe-area-inset-bottom)); display: flex; gap: 6px; z-index: 10; }
+.cam-btns button { width: 40px; height: 40px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); font-size: 18px; }
+.ed-help { position: fixed; right: 12px; top: 64px; z-index: 9; font-size: 12px; color: rgba(255,255,255,.85); text-align: right; line-height: 1.6; text-shadow: 0 1px 3px rgba(0,0,0,.6); pointer-events: none; }
+
+/* 对战 HUD */
+#hud .topbar { background: none; pointer-events: none; }
+#hud .topbar > * { pointer-events: auto; }
+.chip { display: flex; align-items: center; gap: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 7px 12px; font-weight: 800; font-size: 16px; }
+.chip i { font-style: normal; }
+.seg { display: flex; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.seg button { padding: 8px 11px; background: transparent; font-weight: 700; }
+.seg button.on { background: var(--orange); }
+.hbtn { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px 12px; font-weight: 700; }
+.hbtn:hover, .seg button:hover:not(.on) { background: var(--panel2); }
+#pausedTag { position: fixed; top: 42%; left: 50%; transform: translate(-50%, -50%); font-size: 38px; font-weight: 900; letter-spacing: 8px; text-shadow: 0 4px 12px rgba(0,0,0,.5); pointer-events: none; z-index: 5; }
+#waveBox { position: fixed; left: 50%; bottom: max(14px, env(safe-area-inset-bottom)); transform: translateX(-50%); display: flex; align-items: center; gap: 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 8px 8px 8px 14px; z-index: 10; max-width: calc(100% - 24px); }
+#waveInfo { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; font-weight: 600; }
+#waveInfo .lbl { color: var(--muted); font-size: 12px; }
+.wv { display: inline-flex; align-items: center; gap: 3px; white-space: nowrap; }
+.wv img { width: 24px; height: 24px; object-fit: contain; }
+#btnWave { white-space: nowrap; }
+.auto { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--muted); white-space: nowrap; }
+
+#towerPanel { position: fixed; right: 12px; top: 74px; width: 300px; background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 12px; z-index: 12; backdrop-filter: blur(6px); }
+.tp-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.tp-head img { width: 34px; height: 34px; }
+.tp-head b { font-size: 17px; }
+.tp-sub { color: var(--muted); font-size: 12px; }
+.tp-head .lv { background: var(--purple); border-radius: 7px; padding: 1px 7px; font-weight: 800; font-size: 12px; }
+.tp-x { margin-left: auto; width: 30px; height: 30px; border-radius: 9px; background: rgba(255,255,255,.08); }
+.tp-cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; }
+.tcard { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 8px 4px 7px; border-radius: 12px; background: rgba(255,255,255,.07); border: 1px solid transparent; }
+.tcard:hover { background: rgba(255,255,255,.13); border-color: rgba(255,255,255,.2); }
+.tcard img { width: 46px; height: 46px; object-fit: contain; }
+.tcard .tn { font-weight: 700; font-size: 13px; }
+.tcard .tc { font-size: 12px; color: var(--gold); font-weight: 700; }
+.tcard .tk { position: absolute; left: 6px; top: 4px; font-size: 10px; color: var(--muted); }
+.tcard.poor, .up.poor { opacity: .45; }
+.tp-desc { margin-top: 9px; color: var(--muted); font-size: 12px; min-height: 16px; }
+.tp-stat { line-height: 1.6; margin-bottom: 10px; }
+.tp-stat .dim { font-size: 12px; }
+.tp-mode { display: flex; align-items: center; gap: 5px; margin-bottom: 10px; color: var(--muted); font-size: 12px; }
+.tp-mode button { padding: 4px 10px; border-radius: 8px; background: rgba(255,255,255,.08); font-size: 12px; font-weight: 700; }
+.tp-mode button.on { background: var(--purple); color: #fff; }
+.tp-btns { display: flex; gap: 8px; }
+.tp-btns button { flex: 1; padding: 9px 8px; border-radius: 11px; font-weight: 800; }
+.tp-btns .up { background: var(--green); box-shadow: 0 3px 0 var(--green-d); }
+.tp-btns .up small { display: block; font-weight: 600; font-size: 11px; opacity: .9; margin-top: 2px; }
+.tp-btns .up:disabled { background: rgba(255,255,255,.1); box-shadow: none; color: var(--muted); }
+.tp-btns .sell { background: rgba(239, 90, 90, .85); box-shadow: 0 3px 0 #9b3434; flex: 0 0 34%; }
+.tp-btns .sell.wide { flex: 1; margin-top: 10px; }
+.tp-btns .sell small { display: block; font-weight: 600; font-size: 11px; opacity: .9; margin-top: 2px; }
+.tp-stat.pad { background: rgba(255,255,255,.06); border-radius: 10px; padding: 7px 10px; font-size: 13px; }
+.tp-note { margin-top: 9px; font-size: 12px; color: var(--gold); text-align: center; }
+
+#crosshair { position: fixed; left: 50%; top: 50%; width: 22px; height: 22px; margin: -11px 0 0 -11px; pointer-events: none; z-index: 6; }
+#crosshair::before, #crosshair::after { content: ""; position: absolute; background: #fff; box-shadow: 0 0 3px rgba(0,0,0,.7); border-radius: 1px; }
+#crosshair::before { left: 10px; top: 2px; width: 2px; height: 18px; }
+#crosshair::after { top: 10px; left: 2px; height: 2px; width: 18px; }
+#aimHint { position: fixed; left: 50%; top: calc(50% + 22px); transform: translateX(-50%); background: var(--panel); border-radius: 9px; padding: 5px 10px; font-size: 13px; font-weight: 700; pointer-events: none; z-index: 6; white-space: nowrap; }
+#fpHelp { position: fixed; left: 50%; top: 64px; transform: translateX(-50%); font-size: 12px; color: rgba(255,255,255,.9); text-shadow: 0 1px 3px rgba(0,0,0,.7); pointer-events: none; text-align: center; z-index: 6; }
+#lockTip { position: fixed; left: 50%; top: 38%; transform: translate(-50%, -50%); background: var(--panel); border-radius: 14px; padding: 12px 18px; font-weight: 700; pointer-events: none; z-index: 6; }
+body:not(.fp) #lockTip, body.locked #lockTip, body.touch #lockTip, body:not([data-screen="game"]) #lockTip { display: none; }
+#joy { position: fixed; width: 110px; height: 110px; margin: -55px 0 0 -55px; border-radius: 50%; background: rgba(255,255,255,.12); border: 2px solid rgba(255,255,255,.35); pointer-events: none; z-index: 8; }
+#joyKnob { position: absolute; left: 50%; top: 50%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; background: rgba(255,255,255,.55); }
+#hurt { position: fixed; inset: 0; pointer-events: none; box-shadow: inset 0 0 120px 30px rgba(230, 40, 40, .0); z-index: 4; }
+#hurt.on { animation: hurt .5s ease-out; }
+@keyframes hurt { from { box-shadow: inset 0 0 120px 30px rgba(230, 40, 40, .55); } to { box-shadow: inset 0 0 120px 30px rgba(230, 40, 40, 0); } }
+
+#popups { position: fixed; inset: 0; pointer-events: none; z-index: 7; overflow: hidden; }
+.popup { position: absolute; transform: translate(-50%, -50%); font-weight: 900; font-size: 15px; text-shadow: 0 2px 0 rgba(0,0,0,.45); animation: pop .9s ease-out forwards; white-space: nowrap; }
+.popup.gold { color: var(--gold); }
+.popup.hurt { color: #ff6b6b; font-size: 18px; }
+@keyframes pop { 0% { opacity: 0; margin-top: 6px; } 15% { opacity: 1; } 100% { opacity: 0; margin-top: -34px; } }
+
+#toast { position: fixed; left: 50%; top: 22%; transform: translate(-50%, -10px); background: rgba(20, 18, 36, .92); border: 1px solid var(--line); border-radius: 12px; padding: 10px 18px; font-weight: 700; opacity: 0; transition: opacity .2s, transform .2s; pointer-events: none; z-index: 60; text-align: center; max-width: 90vw; }
+#toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+/* 手机 */
+@media (max-width: 760px) {
+  #edTools { top: auto; bottom: 62px; left: 8px; right: 8px; transform: none; flex-direction: row; overflow-x: auto; padding: 6px; }
+  .tool { flex-direction: column; gap: 1px; padding: 4px 6px; font-size: 11px; min-width: 52px; }
+  .tool img, .tool .emo { width: 30px; height: 30px; }
+  #edStatus { max-width: calc(100% - 20px); font-size: 12px; bottom: 136px; }
+  .cam-btns { bottom: 190px; right: 8px; flex-direction: column; }
+  .ed-help { display: none; }
+  #edName { width: 100px; }
+  #towerPanel { left: 8px; right: 8px; top: auto; bottom: 78px; width: auto; }
+  .chip { font-size: 14px; padding: 6px 9px; }
+  .seg button { padding: 7px 8px; }
+  .hbtn { padding: 7px 9px; }
+  #waveBox { bottom: 10px; padding: 6px 6px 6px 10px; gap: 8px; font-size: 12px; }
+  .wv img { width: 20px; height: 20px; }
+  #home .home-btns .btn { font-size: 17px; padding: 12px 22px; }
+}
+</style>
+</head>
+<body data-screen="loading">
+<div id="view"></div>
+
+<div id="loading">
+  <h1>飞碟塔防</h1>
+  <div class="lbar"><div id="loadBar"></div></div>
+  <div class="dim">载入模型 <span id="loadPct">0%</span></div>
+</div>
+
+<div id="home" class="hidden">
+  <div class="title"><h1>飞碟塔防</h1><p>自己画地图，自己守城堡</p></div>
+  <div class="home-btns">
+    <button id="btnPlay" class="btn go">开始挑战</button>
+    <button id="btnEdit" class="btn alt">地图编辑器</button>
+  </div>
+  <div class="credit">模型与天空：Kenney（CC0）</div>
+</div>
+
+<div id="mapList" class="modal hidden"><div class="panel">
+  <h2>选择地图</h2>
+  <div id="mapListBody"></div>
+  <div class="row"><button id="mapListNew" class="btn alt sm">＋ 新建地图</button><button id="mapListClose" class="btn ghost sm">关闭</button></div>
+</div></div>
+
+<div id="editorUI" class="hidden">
+  <div class="topbar">
+    <button id="edBack" class="btn ghost sm">← 返回</button>
+    <input id="edName" maxlength="20" placeholder="地图名">
+    <label>尺寸<select id="edSize"></select></label>
+    <label>地形<select id="edTheme"><option value="grass">草地</option><option value="snow">雪地</option></select></label>
+    <label>天空<select id="edSky"></select></label>
+    <label>波数<select id="edWaves"><option>10</option><option>15</option><option>20</option><option>30</option></select></label>
+    <label>金币<input id="edGold" type="number" min="50" max="5000" step="10"></label>
+    <label>生命<input id="edLives" type="number" min="1" max="100"></label>
+    <span class="spacer"></span>
+    <button id="edClear" class="btn ghost sm">清空</button>
+    <button id="edSave" class="btn alt sm">保存</button>
+    <button id="edTest" class="btn go sm">▶ 试玩</button>
+  </div>
+  <div id="edTools"></div>
+  <div class="ed-help">左键画 · 右键擦<br>双指滑动 / 中键 / 空格+拖动 平移<br>滚轮或捏合缩放 · Q/E 旋转<br>数字键切工具 · ⌘S 保存</div>
+  <div id="edStatus"></div>
+  <div class="cam-btns">
+    <button id="edRotL" title="向左转">⟲</button><button id="edRotR" title="向右转">⟳</button>
+    <button id="edZoomIn" title="放大">＋</button><button id="edZoomOut" title="缩小">－</button>
+  </div>
+</div>
+
+<div id="hud" class="hidden">
+  <div class="topbar">
+    <div class="chip"><i>❤️</i><span id="hLives">20</span></div>
+    <div class="chip"><i>💰</i><span id="hGold">0</span></div>
+    <div class="chip"><i>🌊</i><span id="hWave">0/15</span></div>
+    <span class="spacer"></span>
+    <div class="seg"><button id="spPause" title="暂停（P）">⏸</button><button id="sp1" class="on">1×</button><button id="sp2">2×</button><button id="sp3">3×</button></div>
+    <button id="btnView" class="hbtn">👁 第一人称</button>
+    <button id="btnQuit" class="hbtn">✕ 退出</button>
+  </div>
+  <div id="pausedTag" class="hidden">暂停</div>
+  <div id="waveBox">
+    <div id="waveInfo"></div>
+    <label class="auto"><input type="checkbox" id="autoNext">自动</label>
+    <button id="btnWave" class="btn go sm">▶ 开始第 1 波</button>
+  </div>
+  <div id="towerPanel" class="hidden"></div>
+  <div id="crosshair" class="hidden"></div>
+  <div id="aimHint" class="hidden"></div>
+  <div id="fpHelp" class="hidden"></div>
+  <div id="lockTip">点击画面控制视角</div>
+  <div id="joy" class="hidden"><div id="joyKnob"></div></div>
+  <div id="hurt"></div>
+</div>
+
+<div id="result" class="modal hidden"><div class="panel">
+  <h2 id="resTitle"></h2>
+  <div id="resStars"></div>
+  <div id="resInfo"></div>
+  <div class="row" style="justify-content:center;flex-wrap:wrap">
+    <button id="resAgain" class="btn go">再来一局</button>
+    <button id="resEdit" class="btn alt">编辑地图</button>
+    <button id="resHome" class="btn ghost">返回主页</button>
+  </div>
+</div></div>
+
+<div id="popups"></div>
+<div id="toast"></div>
+
+<script src="vendor/three.min.js"></script>
+<script src="vendor/GLTFLoader.js"></script>
+<script src="js/defs.js"></script>
+<script src="js/assets.js"></script>
+<script src="js/maps.js"></script>
+<script src="js/world.js"></script>
+<script src="js/input.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/game.js"></script>
+<script src="js/main.js"></script>
+</body>
+</html>
