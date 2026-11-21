@@ -1,6 +1,9 @@
 // 全局数据定义：地块、塔、敌人、编辑工具、要预载的模型
 window.TD = {};
 
+// 叠放在别的面上的东西一律抬高这么一点点（肉眼看不出），避免两个面重合闪烁（z-fighting）
+TD.LIFT = 0.004;
+
 TD.C = { GRASS: 0, PATH: 1, SLOT: 2, SPAWN: 3, END: 4, TREE: 5, ROCK: 6, CRYSTAL: 7, HILL: 8 };
 
 // 编辑器工具（icon 用 Kenney 预览图）

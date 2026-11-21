@@ -76,7 +76,7 @@ TD.game = (() => {
     const d = EN[q.type];
     const curve = S.curves[q.ri % S.curves.length];
     const g = new THREE.Group();
-    const model = TD.assets.clone(d.model);
+    const model = TD.assets.castOnly(TD.assets.clone(d.model));
     const mats = [];
     model.traverse((o) => { if (o.isMesh) { o.material = o.material.clone(); mats.push(o.material); } });
     model.scale.setScalar(d.scale);
@@ -149,9 +149,12 @@ TD.game = (() => {
     if (p) return p.kind;
     return S.map.cells[i] === C.SLOT ? 'slot' : null;
   }
+  // 叠放的东西都比下面的面高 TD.LIFT，避免两个面重合闪烁
+  const slotTop = () => 0.2 + TD.LIFT + TD.assets.height('spawn-square');
+  function padBase(i) { return S.map.cells[i] === C.SLOT ? slotTop() + TD.LIFT : 0.2 + TD.LIFT; }
   function padTop(i) {
     const k = padKind(i);
-    return k === 'plain' || k === 'barrel' ? 0.2 + TD.assets.height(PD[k].model) * SC : 0.3;
+    return k === 'plain' || k === 'barrel' ? padBase(i) + TD.assets.height(PD[k].model) * SC : slotTop();
   }
   const canInteract = (i) => !!padKind(i) || S.map.cells[i] === C.GRASS;
   const fullRefund = () => S.wave === 0 && !S.running;
@@ -182,12 +185,13 @@ TD.game = (() => {
     const p = cellXZ(i);
     const pad = { i, c: i % S.map.w, r: (i / S.map.w) | 0, x: p.x, z: p.z, kind, paid: d.cost, kills: 0, cd: 0.5, aim: Math.random() * 6, recoil: 0, mode: 'first' };
     const g = new THREE.Group(), inner = new THREE.Group();
-    pad.piece = TD.assets.clone(d.model);
+    pad.piece = TD.assets.castOnly(TD.assets.clone(d.model));
     pad.piece.rotation.y = pad.aim;
     inner.add(pad.piece);
     inner.scale.setScalar(SC);
     g.add(inner);
-    g.position.set(p.x, 0.2, p.z);
+    pad.base = padBase(i);
+    g.position.set(p.x, pad.base, p.z);
     root.add(g);
     pad.g = g;
     S.pads.set(i, pad);
@@ -199,7 +203,7 @@ TD.game = (() => {
   function weaponVisual(t) {
     const d = TW[t.type];
     const g = new THREE.Group(), inner = new THREE.Group();
-    const w = TD.assets.clone(d.weapon);
+    const w = TD.assets.castOnly(TD.assets.clone(d.weapon));
     inner.add(w);
     inner.scale.setScalar(SC);
     g.add(inner);
@@ -211,7 +215,7 @@ TD.game = (() => {
       pip.castShadow = true;
       g.add(pip);
     }
-    const base = padTop(t.i);
+    const base = padTop(t.i) + TD.LIFT;
     g.position.set(t.x, base, t.z);
     const wh = TD.assets.height(d.weapon);
     const moving = w.getObjectByName('barrel') || w.getObjectByName('arrow') || w.getObjectByName('catapult');
@@ -330,7 +334,7 @@ TD.game = (() => {
     mesh.traverse((o) => { o.castShadow = false; });
     root.add(mesh);
     const fx = Math.sin(p.aim), fz = Math.cos(p.aim);
-    const sx = p.x + fx * 0.68 * SC, sy = 0.2 + 0.3 * SC, sz = p.z + fz * 0.68 * SC;
+    const sx = p.x + fx * 0.68 * SC, sy = p.base + 0.3 * SC, sz = p.z + fz * 0.68 * SC;
     mesh.position.set(sx, sy, sz);
     S.projs.push({ kind: 'direct', mesh, x: sx, y: sy, z: sz, target: e, lx: e.x, ly: e.y, lz: e.z, speed: d.speed, dmg: d.dmg, tower: p });
     puff(sx, sy, sz, 0xe8e8e8, 0.15, 3);

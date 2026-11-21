@@ -42,6 +42,8 @@ TD.assets = (() => {
     if (!m) throw new Error('没有这个模型：' + name);
     return m.scene.clone(true);
   }
+  // 动态摆放的塔、台子、飞碟：只投阴影不接收，避免低多边形侧面自阴影出条纹
+  function castOnly(obj) { obj.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = false; } }); return obj; }
   function height(name) { return models[name] ? models[name].height : 0; }
   function materials() { return Object.values(mats); }
 
@@ -59,5 +61,5 @@ TD.assets = (() => {
     return skies[id];
   }
 
-  return { loadAll, get, clone, height, materials, sky };
+  return { loadAll, get, clone, castOnly, height, materials, sky };
 })();

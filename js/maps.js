@@ -60,10 +60,10 @@ TD.maps = (() => {
         const kind = t === C.SPAWN ? 'spawn' : t === C.END ? 'end' : 'path';
         const rd = road(walkMask(m, c, r), kind);
         put(rd.model, rd.k);
-        if (t === C.SPAWN && !/spawn/.test(rd.model)) out.push({ model: 'spawn-round', x: p.x, z: p.z, y: 0.1, rot: 0 });
+        if (t === C.SPAWN && !/spawn/.test(rd.model)) out.push({ model: 'spawn-round', x: p.x, z: p.z, y: 0.1 + TD.LIFT, rot: 0 });
       } else if (t === C.SLOT) {
         put('tile');
-        out.push({ model: 'spawn-square', x: p.x, z: p.z, y: 0.2, rot: 0 });
+        out.push({ model: 'spawn-square', x: p.x, z: p.z, y: 0.2 + TD.LIFT, rot: 0 });
       } else if (t === C.TREE) {
         put(['tile-tree', 'tile-tree-double', 'tile-tree-quad'][h % 3], (h >> 4) & 3);
       } else if (t === C.ROCK) put('tile-rock', (h >> 4) & 3);

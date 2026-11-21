@@ -25,7 +25,7 @@ TD.world = (() => {
 
     scene = new THREE.Scene();
     scene.background = new THREE.Color(0x9cc3ee);
-    camera = new THREE.PerspectiveCamera(50, 1, 0.03, 400);
+    camera = new THREE.PerspectiveCamera(50, 1, 0.05, 400);
     camera.rotation.order = 'YXZ';
 
     hemi = new THREE.HemisphereLight(0xffffff, 0x6b7a5a, 0.5);
@@ -34,7 +34,7 @@ TD.world = (() => {
     sun.castShadow = true;
     sun.shadow.mapSize.set(2048, 2048);
     sun.shadow.bias = -0.0008;
-    sun.shadow.normalBias = 0.045;
+    sun.shadow.normalBias = 0.07;
     scene.add(sun, sun.target);
 
     mapGroup = new THREE.Group();
@@ -90,6 +90,8 @@ TD.world = (() => {
     for (const m of TD.assets.materials()) { m.envMapIntensity = L.env; m.needsUpdate = true; }
   }
 
+  const NO_CAST = new Set(['spawn-square', 'spawn-round']);
+
   function makeCastle() {
     const g = new THREE.Group();
     let y = 0;
@@ -100,6 +102,7 @@ TD.world = (() => {
       y += name === 'tower-round-base' ? 0.1 : TD.assets.height(name);
     }
     g.scale.setScalar(0.62);
+    TD.assets.castOnly(g);
     return g;
   }
 
@@ -131,7 +134,8 @@ TD.world = (() => {
           im.setMatrixAt(k, _T);
         });
         im.instanceMatrix.needsUpdate = true;
-        im.castShadow = im.receiveShadow = true;
+        im.castShadow = !NO_CAST.has(name);
+        im.receiveShadow = true;
         im.frustumCulled = false; // r147 的 InstancedMesh 按单个几何体包围球裁剪，会误裁
         mapGroup.add(im);
       }
@@ -140,7 +144,7 @@ TD.world = (() => {
       if (t !== C.END) return;
       const p = TD.maps.center(m, i % m.w, (i / m.w) | 0);
       const g = makeCastle();
-      g.position.set(p.x, 0.1, p.z);
+      g.position.set(p.x, 0.1 + TD.LIFT, p.z);
       g.userData.home = g.position.clone();
       mapGroup.add(g);
       castles.push(g);
